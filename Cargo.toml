@@ -1,0 +1,33 @@
+[package]
+name = "stegowasm"
+version = "0.1.0"
+edition = "2024"
+description = "Rust + WASM steganography library with AES-GCM encryption and PBKDF2"
+license = "MIT"
+repository = "https://github.com/zoran-php/stegowasm"
+homepage = "https://github.com/zoran-php/stegowasm"
+readme = "README.md"
+keywords = ["steganography", "wasm", "encryption", "aes-gcm", "pbkdf2"]
+categories = ["cryptography", "wasm"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+getrandom = { version = "0.2.17", features = ["js"] }
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+flate2 = "1.1.9"
+sha2 = "0.10.9"
+aes-gcm = "0.10"
+pbkdf2 = "0.12.2"
+base64 = "0.22"
+thiserror = "1.0.69"
+console_error_panic_hook = "0.1"
+
+[profile.release]
+lto = true
+opt-level = "s"
+codegen-units = 1
+panic = "abort"
