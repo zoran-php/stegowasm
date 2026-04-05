@@ -90,3 +90,69 @@ pub fn decompress(data: &[u8]) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("Decompression failed: {e}"))?;
     Ok(out)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        FLAG_COMPRESSED, HEADER_SIZE_BITS, HEADER_SIZE_BYTES, capacity_bytes, compress, decompress,
+        hide_bytes, read_bytes, read_header_and_payload, write_header_and_payload,
+    };
+
+    #[test]
+    fn hides_and_reads_bytes_at_offset() {
+        let mut image_bytes = vec![0u8; 64];
+        let payload = b"OK";
+
+        hide_bytes(&mut image_bytes, payload, 8).expect("payload should fit");
+
+        let decoded = read_bytes(&image_bytes, payload.len(), 8).expect("payload should decode");
+        assert_eq!(decoded, payload);
+    }
+
+    #[test]
+    fn returns_error_when_image_capacity_is_too_small() {
+        let mut image_bytes = vec![0u8; 7];
+        let err = hide_bytes(&mut image_bytes, b"A", 0).expect_err("payload should not fit");
+        assert!(err.contains("enough capacity"));
+    }
+
+    #[test]
+    fn writes_and_reads_header_and_payload() {
+        let payload = b"secret";
+        let mut image_bytes = vec![0u8; HEADER_SIZE_BITS + payload.len() * 8];
+
+        write_header_and_payload(&mut image_bytes, payload, FLAG_COMPRESSED)
+            .expect("header and payload should fit");
+
+        let (len, flags, decoded) =
+            read_header_and_payload(&image_bytes).expect("embedded payload should decode");
+        assert_eq!(len as usize, payload.len());
+        assert_eq!(flags, FLAG_COMPRESSED);
+        assert_eq!(decoded, payload);
+    }
+
+    #[test]
+    fn compresses_and_decompresses_round_trip() {
+        let data = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let compressed = compress(data).expect("compression should succeed");
+        let decompressed = decompress(&compressed).expect("decompression should succeed");
+
+        assert_eq!(decompressed, data);
+    }
+
+    #[test]
+    fn reports_capacity_in_bytes_from_image_length() {
+        assert_eq!(capacity_bytes(0), 0);
+        assert_eq!(capacity_bytes(8), 1);
+        assert_eq!(capacity_bytes(300), 37);
+        assert_eq!(HEADER_SIZE_BYTES, 5);
+    }
+
+    #[test]
+    fn returns_error_when_read_bytes_exceeds_image_size() {
+        let image_bytes = vec![0u8; 7];
+        let err = read_bytes(&image_bytes, 1, 0)
+            .expect_err("1 byte needs 8 bits but only 7 bytes available");
+        assert!(err.contains("enough embedded data"));
+    }
+}

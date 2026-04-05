@@ -173,6 +173,34 @@ Follow semantic versioning:
 
 ---
 
+## 📋 Testing
+
+#### Run all native tests
+
+`cargo test`
+
+#### Run with output visible (don't capture stdout)
+
+`cargo test -- --nocapture`
+
+#### Run a specific test by name
+
+`cargo test test_name_here`
+
+#### Run tests in a specific module
+
+`cargo test crypto::tests`
+
+#### Run tests with coverage
+
+`cargo llvm-cov`
+
+#### Generate HTML coverage report
+
+`cargo llvm-cov --html`
+
+---
+
 ## 🚀 Roadmap
 
 - [ ] Magic/version header (format detection)

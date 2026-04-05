@@ -58,3 +58,36 @@ pub fn decrypt_bytes(encrypted: &[u8], password: &str) -> Result<Vec<u8>, String
         .decrypt(nonce, ciphertext)
         .map_err(|_| "Decrypt failed: wrong password or corrupted data".to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{NONCE_LEN, SALT_LEN, decrypt_bytes, encrypt_bytes};
+
+    #[test]
+    fn encrypts_and_decrypts_round_trip() {
+        let plain = b"top secret";
+        let encrypted = encrypt_bytes(plain, "correct horse battery staple")
+            .expect("encryption should succeed");
+        let decrypted = decrypt_bytes(&encrypted, "correct horse battery staple")
+            .expect("decryption should succeed");
+
+        assert_eq!(decrypted, plain);
+        assert!(encrypted.len() > plain.len());
+    }
+
+    #[test]
+    fn rejects_wrong_password() {
+        let encrypted = encrypt_bytes(b"top secret", "right").expect("encryption should succeed");
+        let err = decrypt_bytes(&encrypted, "wrong").expect_err("password should be rejected");
+
+        assert!(err.contains("wrong password"));
+    }
+
+    #[test]
+    fn rejects_too_short_encrypted_payload() {
+        let too_short = vec![0u8; SALT_LEN + NONCE_LEN + 15];
+        let err = decrypt_bytes(&too_short, "password").expect_err("payload should be rejected");
+
+        assert!(err.contains("too short"));
+    }
+}
